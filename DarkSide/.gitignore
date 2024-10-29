@@ -1,0 +1,4 @@
+*.npz
+*.cif
+__pycache__
+
