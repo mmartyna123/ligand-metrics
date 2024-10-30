@@ -4,66 +4,114 @@ from skimage import measure
 import napari
 import matplotlib.pyplot as plt
 
-# %%
-ligands, resolution, num_particles = extract_ligand_coords("6G2J.cif")
-ligands.keys(), resolution, num_particles
+def load_ligands(cif_file):
+    """
+    Input:
+        cif_file - path to a cif file containing ligands
+    Return:
+        ligands - list of ligands
+    """
+    return extract_ligand_coords(cif_file)[0]
 
-# %%
-# (pdb id)_(chain id)_(residue id[1])_(residue id[0][2:])
-ligand = ligands["6G2J_M_501_3PE"]
-ligand
+def load_blob(blob_file):
+    """
+    Input:
+        blob_file - path to a npz file containing a blob
+    Return:
+        blob - voxel grind of the blob
+    """
+    return np.load(blob_file)["arr_0"]
 
-# %%
-for element in get_unique_elements(ligand):
-    print(element.name, f"{element.atomic_radius}pm")
+def blobify(ligand, resolution=1, padding=0):
+    """
+    Input:
+        ligand - list of tuples of atom names and atom positions in Arnstroms
+        resolution - how much to scale up the ligand (default: 1)
+        padding - how much space to leave around the ligand in Arnstroms (default: 0)
+    Return:
+        blob - voxel grid with values from 0 to 1 masking the shape of the ligand
+    """
+    offset, size = get_offset_and_size(ligand)
 
-# %%
-offset, size = get_offset_and_size(ligand)
-offset, size
+    blob = np.zeros(shape=np.ceil((size + 2*padding) * resolution).astype(int))
+    for atom_name, position in ligand:
+        center = (position - offset + padding) * resolution
+        radius = cif_atom_to_mendeleev_element(atom_name).atomic_radius
+        radius = pm_to_angstrom(radius) * resolution
+        blob = np.logical_or(blob, sphere(blob.shape, radius, center))
 
-# %%
-cut_blob = np.load("6G2J_M_501_3PE.npz")["arr_0"]
-cut_blob.shape
+    return blob
 
-# %%
-x, y, z = cut_blob.nonzero()
-bb_min, bb_max = np.array([x.min(), y.min(), z.min()]), np.array([x.max(), y.max(), z.max()])
-bb_min, bb_max
+def blobify_like(ligand, other_blob):
+    """
+    Input:
+        ligand - list of tuples of atom names and atom positions in Arnstroms
+        other_blob - voxel grind containing a shape
+    Return:
+        blob - numpy array with values from 0 to 1 masking the shape of the ligand
+    """
+    offset, size = get_offset_and_size(ligand)
 
-# %%
-scale = (bb_max - bb_min) / size
-scale
+    x, y, z = cut_blob.nonzero()
+    bb_min = np.array([x.min(), y.min(), z.min()])
+    bb_max = np.array([x.max(), y.max(), z.max()])
+    scale = (bb_max - bb_min) / size
 
-# %%
-perfect_blob = np.zeros_like(cut_blob)
-for atom_name, coord in ligand:
-    center = (coord - offset) * scale + bb_min
-    atomic_radius = pm_to_angstrom(cif_atom_to_mendeleev_element(atom_name).atomic_radius) * np.mean(scale)
-    perfect_blob = np.logical_or(perfect_blob, sphere(perfect_blob.shape, atomic_radius, center))
+    blob = np.zeros_like(other_blob)
+    for atom_name, position in ligand:
+        center = (position - offset) * scale + bb_min
+        radius = cif_atom_to_mendeleev_element(atom_name).atomic_radius
+        radius = pm_to_angstrom(radius) * np.mean(scale)
+        blob = np.logical_or(blob, sphere(blob.shape, radius, center))
 
-# %%
-fig = plt.figure(figsize=plt.figaspect(0.5))
+    return blob
 
-ax = fig.add_subplot(1, 2, 1, projection='3d')
+def plot_blob(blob, fig=None, size=1, idx=1, share_ax=None):
+    """
+    Input:
+        blob - voxel grid containing a shape
+    """
+    fig = plt.figure() if fig is None else fig
 
-verts, faces, normals, values = measure.marching_cubes(perfect_blob, 0)
-ax.plot_trisurf(
-    verts[:, 0], verts[:, 1], faces, verts[:, 2], cmap='Spectral',
-    antialiased=False, linewidth=0.0)
+    ax = fig.add_subplot(1, size, idx, projection='3d', sharex=share_ax, sharey=share_ax, sharez=share_ax)
 
-ax = fig.add_subplot(1, 2, 2, projection='3d', sharex=ax, sharey=ax, sharez=ax)
+    verts, faces, normals, values = measure.marching_cubes(blob, 0)
+    ax.plot_trisurf(
+        verts[:, 0], verts[:, 1], faces, verts[:, 2], cmap='Spectral',
+        antialiased=False, linewidth=0.0)
 
-verts, faces, normals, values = measure.marching_cubes(cut_blob, 0)
-ax.plot_trisurf(
-    verts[:, 0], verts[:, 1], faces, verts[:, 2], cmap='Spectral',
-    antialiased=False, linewidth=0.0)
+    return fig, ax
 
-plt.show()
+def plot_blob_comparison(blob, other_blob):
+    """
+    Input:
+        blob - voxel grid containing a shape
+        other_blob - voxel grind containing a shape to compare with
+    """
+    fig = plt.figure(figsize=plt.figaspect(0.5))
+    axes = []
 
-# %%
-viewer = napari.Viewer()
-viewer.add_image(cut_blob, name="cut blob", colormap="bop blue")
-viewer.add_image(perfect_blob, name="perfect blob", opacity=0.5, colormap="bop orange")
+    axes.append(plot_blob(blob, fig, 2, 1)[1])
+    axes.append(plot_blob(other_blob, fig, 2, 2, axes[0])[1])
 
-# %%
+    return fig, axes
+
+def napari_blob_comparison(blob, other_blob):
+    """
+    Input:
+        blob - voxel grid containing a shape
+        other_blob - voxel grind containing a shape to compare with
+    """
+    viewer = napari.Viewer()
+    viewer.add_image(blob, name="blob", colormap="bop blue")
+    viewer.add_image(other_blob, name="other blob", opacity=0.5, colormap="bop orange")
+    return viewer
+
+if __name__ == "__main__":
+    ligands = load_ligands("6G2J.cif")
+    ligand = ligands["6G2J_M_501_3PE"]
+    cut_blob = load_blob("6G2J_M_501_3PE.npz")
+    perfect_blob = blobify_like(ligand, cut_blob)
+    plot_blob_comparison(perfect_blob, cut_blob)
+    plt.show()
 
