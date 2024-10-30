@@ -15,13 +15,16 @@ def cif_atom_to_mendeleev_element(cif_name):
 def get_unique_elements(ligand):
     return list(set(map(cif_atom_to_mendeleev_element, set(map(lambda atom: atom[0], ligand)))))
 
+def pm_to_angstrom(pm):
+    return pm * 0.01
+
 def get_offset_and_size(ligand):
-    point_cloud = np.empty(shape=(len(ligand), 3), dtype=np.float32)
-    for i, (name, coord) in enumerate(ligand):
-        point_cloud[i] = coord
-    offset = point_cloud.min(axis=0)
-    size = point_cloud.max(axis=0) - offset
-    return offset, size
+    bb_min, bb_max = np.ones(shape=(3,)) * float("inf"), np.ones(shape=(3,)) * float("-inf")
+    for name, coord in ligand:
+        atomic_radius = pm_to_angstrom(cif_atom_to_mendeleev_element(name).atomic_radius)
+        bb_min = np.minimum(bb_min, coord - atomic_radius)
+        bb_max = np.maximum(bb_max, coord + atomic_radius)
+    return bb_min, bb_max - bb_min
 
 # ==== Reading CIF files ==== #
 # Borrowed from https://github.com/dabrze/cryo-em-ligand-cutter/blob/main/utils/cryoem_utils.py#L73-L159

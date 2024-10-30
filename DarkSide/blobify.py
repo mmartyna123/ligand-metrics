@@ -38,8 +38,7 @@ scale
 perfect_blob = np.zeros_like(cut_blob)
 for atom_name, coord in ligand:
     center = (coord - offset) * scale + bb_min
-    # TODO: figure out a how to scale the atomic_radius
-    atomic_radius = cif_atom_to_mendeleev_element(atom_name).atomic_radius * 0.075 # 0.1
+    atomic_radius = pm_to_angstrom(cif_atom_to_mendeleev_element(atom_name).atomic_radius) * np.mean(scale)
     perfect_blob = np.logical_or(perfect_blob, sphere(perfect_blob.shape, atomic_radius, center))
 
 # %%
