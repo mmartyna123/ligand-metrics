@@ -51,7 +51,7 @@ def blobify_like(ligand, other_blob):
     """
     offset, size = get_offset_and_size(ligand)
 
-    x, y, z = cut_blob.nonzero()
+    x, y, z = other_blob.nonzero()
     bb_min = np.array([x.min(), y.min(), z.min()])
     bb_max = np.array([x.max(), y.max(), z.max()])
     scale = (bb_max - bb_min) / size
