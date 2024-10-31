@@ -1,19 +1,17 @@
 import numpy as np
 from Bio.PDB.MMCIFParser import MMCIFParser
-import re
 import mendeleev
 from functools import lru_cache
 
 # ==== Handling ligands ==== #
 @lru_cache
-def cif_atom_to_mendeleev_element(cif_name):
-    formatted = cif_name[0] + cif_name[1:].lower()
-    if cif_name[0] == "C" and len(cif_name) > 1 and cif_name[1] in "ABCDEFGHIJKLMN": # TODO: might need to extend this set
-        formatted = "C"
-    return mendeleev.element(formatted)
+def get_atomic_radius(atom_name):
+    "atomic radius in Angstrom"
+    atom_name = atom_name[0].upper() + atom_name[1:].lower()
+    return pm_to_angstrom(mendeleev.element(atom_name).atomic_radius)
 
 def get_unique_elements(ligand):
-    return list(set(map(cif_atom_to_mendeleev_element, set(map(lambda atom: atom[0], ligand)))))
+    return list(set(map(lambda atom: atom[0], ligand)))
 
 def pm_to_angstrom(pm):
     return pm * 0.01
@@ -21,7 +19,7 @@ def pm_to_angstrom(pm):
 def get_offset_and_size(ligand):
     bb_min, bb_max = np.ones(shape=(3,)) * float("inf"), np.ones(shape=(3,)) * float("-inf")
     for name, coord in ligand:
-        atomic_radius = pm_to_angstrom(cif_atom_to_mendeleev_element(name).atomic_radius)
+        atomic_radius = get_atomic_radius(name)
         bb_min = np.minimum(bb_min, coord - atomic_radius)
         bb_max = np.maximum(bb_max, coord + atomic_radius)
     return bb_min, bb_max - bb_min
@@ -58,7 +56,7 @@ def extract_ligand_coords(cif_file):
                 ligand_coords = []
                 ligand_name = f"{pdb_id}_{chain_id}_{residue.get_id()[1]}_{residue.get_id()[0][2:]}"
                 for atom in residue:
-                    ligand_coords.append((re.sub(r"\d+", "", atom.get_name()), atom.get_coord()))
+                    ligand_coords.append((atom.element, atom.get_coord()))
 
                 ligands[ligand_name] = ligand_coords
 

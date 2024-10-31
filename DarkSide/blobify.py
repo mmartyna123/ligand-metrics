@@ -36,8 +36,7 @@ def blobify(ligand, resolution=1, padding=0):
     blob = np.zeros(shape=np.ceil((size + 2*padding) * resolution).astype(int))
     for atom_name, position in ligand:
         center = (position - offset + padding) * resolution
-        radius = cif_atom_to_mendeleev_element(atom_name).atomic_radius
-        radius = pm_to_angstrom(radius) * resolution
+        radius = get_atomic_radius(atom_name) * resolution
         blob = np.logical_or(blob, sphere(blob.shape, radius, center))
 
     return blob
@@ -60,8 +59,7 @@ def blobify_like(ligand, other_blob):
     blob = np.zeros_like(other_blob)
     for atom_name, position in ligand:
         center = (position - offset) * scale + bb_min
-        radius = cif_atom_to_mendeleev_element(atom_name).atomic_radius
-        radius = pm_to_angstrom(radius) * np.mean(scale)
+        radius = get_atomic_radius(atom_name) * np.mean(scale)
         blob = np.logical_or(blob, sphere(blob.shape, radius, center))
 
     return blob
