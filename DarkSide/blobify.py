@@ -106,10 +106,21 @@ def napari_blob_comparison(blob, other_blob):
     return viewer
 
 if __name__ == "__main__":
-    ligands = load_ligands("6G2J.cif")
-    ligand = ligands["6G2J_M_501_3PE"]
-    cut_blob = load_blob("6G2J_M_501_3PE.npz")
-    perfect_blob = blobify_like(ligand, cut_blob)
-    plot_blob_comparison(perfect_blob, cut_blob)
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("ligand", help="ligand to blobify and display")
+    parser.add_argument("-c", "--compare", action="store_true", help="compare with cut blob")
+    args = parser.parse_args()
+    pdb_id = args.ligand.partition("_")[0]
+
+    ligands = load_ligands(f"{pdb_id}.cif")
+    ligand = ligands[args.ligand]
+    if args.compare:
+        cut_blob = load_blob(f"{args.ligand}.npz")
+        perfect_blob = blobify_like(ligand, cut_blob)
+        plot_blob_comparison(perfect_blob, cut_blob)
+    else:
+        perfect_blob = blobify(ligand, resolution=5, padding=1)
+        plot_blob(perfect_blob)
     plt.show()
 
