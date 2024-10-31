@@ -1,0 +1,15 @@
+[tool.setuptools]
+py-modules = ["utils", "blobify"]
+
+[project]
+name = "blobify"
+version = "1"
+dependencies = [
+  "biopython>=1.79",
+  "numpy>=1.21.6",
+  "scipy>=1.7.3",
+  "matplotlib>=3.5.3",
+  "napari",
+  "mendeleev"
+]
+
