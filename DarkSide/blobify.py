@@ -72,6 +72,8 @@ def plot_blob(blob, fig=None, size=1, idx=1, share_ax=None):
     fig = plt.figure() if fig is None else fig
 
     ax = fig.add_subplot(1, size, idx, projection='3d', sharex=share_ax, sharey=share_ax, sharez=share_ax)
+    if share_ax:
+        ax.shareview(share_ax)
 
     verts, faces, normals, values = measure.marching_cubes(blob, 0)
     ax.plot_trisurf(
