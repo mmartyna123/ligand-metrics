@@ -2,5 +2,7 @@ cryoem_blobs.zip
 *.egg-info
 *.npz
 *.cif
+*.mrc.gz
+*.map.gz
 __pycache__
 
