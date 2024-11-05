@@ -3,6 +3,7 @@ from utils import *
 from skimage import measure
 import napari
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 def load_ligands(cif_file):
     """
@@ -96,6 +97,21 @@ def plot_blob_comparison(blob, other_blob):
 
     return fig, axes
 
+def set_axes_unit(axes, scale=1):
+    """
+    Input:
+        axes - matplotlib axes to add the formatted unit
+        scale - how much to scale the axis by
+    """
+    formatter = ticker.FuncFormatter(lambda x, pos: '{:.2f}'.format(x/scale))
+    for ax in axes:
+        ax.xaxis.set_major_formatter(formatter)
+        ax.yaxis.set_major_formatter(formatter)
+        ax.zaxis.set_major_formatter(formatter)
+        ax.set_xlabel("x [Å]")
+        ax.set_ylabel("y [Å]")
+        ax.set_zlabel("z [Å]")
+
 def napari_blob_comparison(blob, other_blob):
     """
     Input:
@@ -123,6 +139,7 @@ if __name__ == "__main__":
         plot_blob_comparison(perfect_blob, cut_blob)
     else:
         perfect_blob = blobify(ligand, resolution=5, padding=1)
-        plot_blob(perfect_blob)
+        fig, ax = plot_blob(perfect_blob)
+        set_axes_unit([ax], scale=5)
     plt.show()
 
