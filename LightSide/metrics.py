@@ -7,6 +7,7 @@ from scipy.spatial.distance import cdist #Hausdorff Distance
 from scipy.stats import wasserstein_distance #Wasserstein Distance
 from scipy.ndimage import sobel #Gradient Magnitude Similarity Deviation
 from scipy.spatial.distance import directed_hausdorff #Hausdorff Distance
+from scipy.stats import wasserstein_distance_nd
 
 
 #opcen3d and geomloss
@@ -115,6 +116,9 @@ def wasserstein_dst_voxel(voxel1, voxel2):
     wasserstein_dist = wasserstein_distance(voxel1_flat, voxel2_flat)
     return wasserstein_dist
 
+
+def wasser(voxel1, voxel2):
+    return wasserstein_distance_nd(voxel1, voxel2)
 
 def gradient_magnitude_similarity_deviation(voxel1, voxel2):
     """
