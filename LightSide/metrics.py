@@ -6,6 +6,8 @@ from scipy.ndimage import binary_dilation #Q-score
 from scipy.spatial.distance import cdist #Hausdorff Distance
 from scipy.stats import wasserstein_distance #Wasserstein Distance
 from scipy.ndimage import sobel #Gradient Magnitude Similarity Deviation
+from scipy.spatial.distance import directed_hausdorff #Hausdorff Distance
+
 
 #opcen3d and geomloss
 def xor_similarity(voxel1, voxel2):
@@ -27,6 +29,7 @@ def xor_similarity(voxel1, voxel2):
     return 1 - xor_count / total_voxels
 
 
+#Doesnt work on pretty blobs due to size. cant allocate 160gb of memory.
 def hausdorff_distance(voxel1, voxel2):
     """
     Calculate the Hausdorff distance between two 3D voxel grids.
@@ -54,6 +57,24 @@ def hausdorff_distance(voxel1, voxel2):
     return hausdorff_dist
 
 
+def Hausdorff_dist(vol_a,vol_b):
+    dist_lst = []
+    for idx in range(len(vol_a)):
+        dist_min = 1000.0        
+        for idx2 in range(len(vol_b)):
+            dist= np.linalg.norm(vol_a[idx]-vol_b[idx2]) #euclidean distance
+            if dist_min > dist:
+                dist_min = dist
+        dist_lst.append(dist_min)
+    return np.max(dist_lst)
+
+
+def Hausdorff_normalized(voxel1, voxel2): 
+    D = np.sqrt(voxel1.shape[0]**2 + voxel1.shape[1]**2 + voxel1.shape[2]**2)
+    distance = Hausdorff_dist(voxel1, voxel2)
+    return distance / D
+
+
 def total_variation_distance(voxel1, voxel2):
     """
     Calculate the Total Variation Distance (TVD) between two voxel arrays.
@@ -70,8 +91,9 @@ def total_variation_distance(voxel1, voxel2):
     """
     # Compute absolute difference and normalize
     abs_difference = np.abs(voxel1.astype(float) - voxel2.astype(float))
-    tvd = np.sum(abs_difference) / (2 * voxel1.size)
+    tvd = np.sum(abs_difference) / voxel1.size
     return tvd
+#zeby nie pracowac na 0.000x mozna dzielic przez ilosc voxeli niezerowych instead. 
 
 
 def wasserstein_dst_voxel(voxel1, voxel2):
@@ -116,3 +138,6 @@ def gradient_magnitude_similarity_deviation(voxel1, voxel2):
     # Compute the absolute difference of the gradient magnitudes
     gmsd = 1- np.mean(np.abs((gradient_magnitude1 - gradient_magnitude2) / (gradient_magnitude1 + gradient_magnitude2 + 1e-6)))
     return gmsd
+
+# https://github.com/jamaliki/qscore/blob/main/qscore/q_score.py
+#scipy hausdorff doesnt work, its for 2D. found something on stack overflow with bbox and it also didnt work due to dimensions(?)
