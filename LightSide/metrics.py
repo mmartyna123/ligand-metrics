@@ -10,6 +10,7 @@ from scipy.spatial.distance import directed_hausdorff #Hausdorff Distance
 from scipy.stats import wasserstein_distance_nd
 
 
+
 #opcen3d and geomloss
 def xor_similarity(voxel1, voxel2):
     """
@@ -74,6 +75,36 @@ def Hausdorff_normalized(voxel1, voxel2):
     D = np.sqrt(voxel1.shape[0]**2 + voxel1.shape[1]**2 + voxel1.shape[2]**2)
     distance = Hausdorff_dist(voxel1, voxel2)
     return distance / D
+
+
+
+
+#may work or may not
+def hausdorff_distance_voxel(voxel1, voxel2):
+    """
+    Calculate the Hausdorff distance between two 3D voxel grids using scipy's directed Hausdorff.
+
+    Parameters:
+    voxel1 (numpy.ndarray): A 3D numpy array representing the first voxel grid.
+    voxel2 (numpy.ndarray): A 3D numpy array representing the second voxel grid.
+
+    Returns:
+    float: The Hausdorff distance between the two voxel grids.
+    """
+    # Get coordinates of occupied voxels for non-binary values
+    coords1 = np.argwhere(voxel1 > 0)
+    coords2 = np.argwhere(voxel2 > 0)
+    
+    # Calculate directed Hausdorff distance from coords1 to coords2 and vice versa
+    d1 = directed_hausdorff(coords1, coords2)[0]
+    d2 = directed_hausdorff(coords2, coords1)[0]
+    
+    # Hausdorff distance is the maximum of the two directed distances
+    hausdorff_dist = max(d1, d2)
+    return hausdorff_dist
+
+
+
 
 
 def total_variation_distance(voxel1, voxel2):
@@ -145,3 +176,37 @@ def gradient_magnitude_similarity_deviation(voxel1, voxel2):
 
 # https://github.com/jamaliki/qscore/blob/main/qscore/q_score.py
 #scipy hausdorff doesnt work, its for 2D. found something on stack overflow with bbox and it also didnt work due to dimensions(?)
+
+
+def qscore_similarity(voxel_grid1, voxel_grid2, threshold=0.1):
+    """
+    Compute the Q-score similarity measure between two voxel grids.
+    
+    Parameters:
+    - voxel_grid1, voxel_grid2: 3D numpy arrays representing the voxel grids.
+    - threshold: Minimum voxel intensity considered in the comparison (to ignore noise or low-density regions).
+    
+    Returns:
+    - Q-score similarity between the two voxel grids.
+    """
+    # Ensure both grids are the same shape
+    if voxel_grid1.shape != voxel_grid2.shape:
+        raise ValueError("Voxel grids must have the same shape for comparison.")
+    
+    # Flatten the voxel grids for element-wise operations
+    flat_grid1 = voxel_grid1.flatten()
+    flat_grid2 = voxel_grid2.flatten()
+    
+    # Filter out low-intensity voxels based on the threshold
+    mask = (flat_grid1 > threshold) & (flat_grid2 > threshold)
+    grid1_filtered = flat_grid1[mask]
+    grid2_filtered = flat_grid2[mask]
+    
+    # Calculate Q-score as the Pearson correlation coefficient
+    if len(grid1_filtered) > 0:
+        q_score = np.corrcoef(grid1_filtered, grid2_filtered)[0, 1]
+    else:
+        # If no high-density overlap, Q-score is zero
+        q_score = 0.0
+    
+    return 1 - q_score
