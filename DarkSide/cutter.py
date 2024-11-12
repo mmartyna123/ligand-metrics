@@ -118,4 +118,18 @@ set_axes_unit(axes, np.mean(scale))
 plt.show()
 
 # %%
+blob = cutout.copy()
+
+blob[np.where(mask == 0)] = blob.min()
+
+np.savez("ours_6HCY_C_502_HEM.npz", blob)
+
+# %%
+blob = load_blob("ours_6HCY_C_502_HEM.npz")
+
+fig, axex = plot_blob_comparison(mask, blob)
+set_axes_unit(axes, scale)
+plt.show()
+
+# %%
 
