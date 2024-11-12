@@ -43,7 +43,7 @@ mrc.voxel_size
 # %%
 order = (3 - mrc.header.maps, 3 - mrc.header.mapr, 3 - mrc.header.mapc)
 map = np.asarray(mrc.data, dtype="f4")
-map = np.moveaxis(a=map, source=(0, 1, 2), destination=order)
+map = np.moveaxis(a=map, source=order, destination=(2, 1, 0))
 map.shape
 
 # %%
@@ -58,13 +58,13 @@ for atom_name, position in ligand:
     radius = get_atomic_radius(atom_name) * np.mean(scale)
     blob = np.logical_or(blob, sphere(blob.shape, radius, center))
 
+offset = np.floor(offset * scale).astype(int)
+
 fig, ax = plot_blob(blob)
 set_axes_unit([ax], np.mean(scale))
 plt.show()
 
 # %%
-offset = np.floor(offset).astype(int)
-
 cutout = map[offset[0]:offset[0]+size[0],offset[1]:offset[1]+size[1],offset[2]:offset[2]+size[2]]
 cutout.shape
 
