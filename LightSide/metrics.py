@@ -210,3 +210,25 @@ def qscore_similarity(voxel_grid1, voxel_grid2, threshold=0.1):
         q_score = 0.0
     
     return 1 - q_score
+
+
+
+def compute_q_score(voxel1: np.array, voxel2: np.array) -> float:
+    assert voxel1.shape == voxel2.shape, "diff in shape"
+    voxel1 = voxel1.copy()
+    voxel2 = voxel2.copy()
+
+    v1_mean = np.mean(voxel1)
+    v2_mean = np.mean(voxel2)
+
+    u_normalized = voxel1 - v1_mean
+    v_normalized = voxel2 - v2_mean
+
+    numerator = np.sum(u_normalized * v_normalized)
+    denominator = np.linalg.norm(u_normalized) * np.linalg.norm(v_normalized)
+
+    if denominator == 0:
+        return 0
+
+    q_score_value = numerator / denominator
+    return abs(1 - q_score_value)
