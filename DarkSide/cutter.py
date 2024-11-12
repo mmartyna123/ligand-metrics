@@ -85,6 +85,14 @@ plt.show()
 napari_blob_comparison(mask, cutout)
 
 # %%
+fig, axs = plt.subplots(1, 2, sharey=True, sharex=True, tight_layout=True)
+
+axs[0].hist(cutout.reshape(-1), bins=50)
+axs[1].hist(cutout[mask.nonzero()].reshape(-1), bins=50)
+
+plt.show()
+
+# %%
 from scipy import stats
 
 fig, axs = plt.subplots(1, 2, sharey=True, sharex=True, tight_layout=True)
@@ -96,32 +104,14 @@ axs[1].plot(x, stats.gaussian_kde(cutout[mask.nonzero()].reshape(-1))(x))
 plt.show()
 
 # %%
-blob = cutout.copy()
-
-threshold = 0.045
-blob[blob >= threshold] = 1
-blob[blob <  threshold] = 0
-
-fig, axes = plot_blob_comparison(mask, blob)
-set_axes_unit(axes, np.mean(scale))
-plt.show()
-
-# %%
-blob = cutout.copy()
-
-blob = blob.clip(cutout[mask.nonzero()].min(), cutout[mask.nonzero()].max())
-
-fig, axes = plot_blob_comparison(mask, blob)
-set_axes_unit(axes, np.mean(scale))
-plt.show()
-
-# %%
 cutout.mean(), cutout[mask.nonzero()].mean()
 
 # %%
-mean_blob = cutout.copy()
-mean_blob[mean_blob >= cutout.mean()] = 1
-mean_blob[mean_blob <  cutout.mean()] = 0
+blob = cutout.copy()
+
+threshold = 0.12 # taken visually from chimerax
+blob[blob >= threshold] = 1
+blob[blob <  threshold] = 0
 
 fig, axes = plot_blob_comparison(mask, blob)
 set_axes_unit(axes, np.mean(scale))
