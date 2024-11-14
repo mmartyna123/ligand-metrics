@@ -198,17 +198,67 @@ set_axes_unit(axes, np.mean(scale))
 plt.show()
 
 # %%
-distance_positive_mask = np.empty(shape=size)
-distance_negative_mask = np.empty(shape=size)
+import pyopencl as cl
 
-from tqdm import tqdm
-for idx in tqdm(np.arange(stop=size[0]*size[1]*size[2])):
-    x = idx % size[0]
-    y = (idx // size[0]) % size[1]
-    z = idx // (size[0] * size[1])
-    position = np.array([x,y,z])
-    distance_positive_mask[x,y,z] = min([np.linalg.norm(position - center) - radius.mean() for center, radius in ligand_atoms]) # positive atoms
-    distance_negative_mask[x,y,z] = min([np.linalg.norm(position - center) - radius.mean() for center, radius in neighbor_atoms]) # negative atoms
+PREFERRED_PLATFORM = 0
+cl_platform = cl.get_platforms()[PREFERRED_PLATFORM]
+
+devices = cl_platform.get_devices(cl.device_type.GPU)
+if len(devices) == 0:
+    devices = cl_platform.get_devices(device_type=cl.device_type.CPU)
+
+cl_ctx = cl.Context(devices=devices)
+cl_queue = cl.CommandQueue(cl_ctx)
+cl_ctx
+
+# %%
+def atoms_to_cl_args(ctx, atoms):
+    num_atoms = len(atoms)
+    atom_center_np = np.empty(shape=(num_atoms, 3), dtype=np.float32)
+    atom_radius_np = np.empty(shape=(num_atoms,), dtype=np.float32)
+    for idx, atom in enumerate(atoms):
+        atom_center_np[idx] = atom[0].astype(np.float32)
+        atom_radius_np[idx] = np.mean(atom[1]).astype(np.float32)
+    atom_center_buf = cl.Buffer(ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=atom_center_np)
+    atom_radius_buf = cl.Buffer(ctx, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=atom_radius_np)
+    return np.int32(num_atoms), atom_center_buf, atom_radius_buf
+
+prg = cl.Program(cl_ctx, """
+__kernel void calc_min_distance(__global float* min_distances, const int num_atoms, __constant const float* atom_center, __constant const float* atom_radius) {
+    const int x = get_global_id(0);
+    const int y = get_global_id(1);
+    const int z = get_global_id(2);
+    const int width  = get_global_size(0);
+    const int height = get_global_size(1);
+    const int depth  = get_global_size(2);
+
+    const int idx = x * height * depth + y * depth + z;
+
+    const float3 position = (float3)(x, y, z);
+
+    float min_distance = FLT_MAX;
+    for (int i = 0; i < num_atoms; i++) {
+        const float3 center = (float3)(atom_center[i*3+0], atom_center[i*3+1], atom_center[i*3+2]);
+        const float dist = length(position - center) - atom_radius[i];
+        if (dist < min_distance) {
+            min_distance = dist;
+        }
+    }
+    min_distances[idx] = min_distance;
+}
+""").build()
+
+distance_positive_mask = np.empty(shape=size, dtype=np.float32)
+d_pos = cl.Buffer(cl_ctx, cl.mem_flags.WRITE_ONLY, distance_positive_mask.nbytes)
+
+distance_negative_mask = np.empty(shape=size, dtype=np.float32)
+d_neg = cl.Buffer(cl_ctx, cl.mem_flags.WRITE_ONLY, distance_negative_mask.nbytes)
+
+prg.calc_min_distance(cl_queue, size, None, d_pos, *atoms_to_cl_args(cl_ctx, ligand_atoms))
+prg.calc_min_distance(cl_queue, size, None, d_neg, *atoms_to_cl_args(cl_ctx, neighbor_atoms))
+
+cl.enqueue_copy(cl_queue, distance_positive_mask, d_pos)
+cl.enqueue_copy(cl_queue, distance_negative_mask, d_neg)
 
 # %%
 blob = cutout.copy()
