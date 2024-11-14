@@ -226,7 +226,7 @@ plt.show()
 # %%
 blob = cutout.copy()
 
-blob[distance_positive > distance_negative] = blob.min()
+blob[distance_positive_mask > distance_negative_mask] = blob.min()
 
 np.savez("ours_6HCY_C_502_HEM.npz", blob)
 
