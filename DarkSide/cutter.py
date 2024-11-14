@@ -144,6 +144,7 @@ len(all_atoms), len(all_atoms["not_studied"])
 # %%
 from scipy.spatial import KDTree
 
+POINTS_PER_ATOM = 2
 ligands_pc = []
 ligands_names = []
 ligands_atoms = []
@@ -154,8 +155,6 @@ for ligand_name in all_atoms:
         ligands_pc.append((center - radius) * scale)
         ligands_pc.append((center + radius) * scale)
         ligands_atoms.append((center * scale, radius * scale))
-        ligands_atoms.append((center * scale, radius * scale))
-        ligands_names.append(ligand_name)
         ligands_names.append(ligand_name)
 
 lookup = KDTree(ligands_pc)
@@ -166,9 +165,10 @@ radius = np.ceil((size @ size) ** 0.5 * 0.5)
 
 ligand_atoms_idxs = [idx for idx, ligand_name in enumerate(ligands_names) if ligand_name == "6HCY_C_502_HEM"]
 neighbour_atoms_idxs = lookup.query_ball_point(center, radius)
-neighbour_atoms_idxs = list(filter(lambda idx: not idx in ligand_atoms_idxs, neighbour_atoms_idxs))
-print({ligands_names[idx] for idx in neighbour_atoms_idxs})
-len(neighbour_atoms_idxs) # TODO: this contains duplicates (bb_min, bb_max)
+neighbour_atoms_idxs = [i // POINTS_PER_ATOM for i in neighbour_atoms_idxs]
+neighbour_atoms_idxs = filter(lambda idx: not idx in ligand_atoms_idxs, neighbour_atoms_idxs)
+neighbour_atoms_idxs = list(set(neighbour_atoms_idxs))
+{ligands_names[idx] for idx in neighbour_atoms_idxs}, len(neighbour_atoms_idxs)
 
 # %%
 offset, size = get_offset_and_size(ligand)
