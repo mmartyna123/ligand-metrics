@@ -6,7 +6,6 @@ from scipy.ndimage import binary_dilation #Q-score
 from scipy.spatial.distance import cdist #Hausdorff Distance
 from scipy.stats import wasserstein_distance #Wasserstein Distance
 from scipy.ndimage import sobel #Gradient Magnitude Similarity Deviation
-from scipy.spatial.distance import directed_hausdorff #Hausdorff Distance
 from scipy.stats import wasserstein_distance_nd
 
 
@@ -28,83 +27,7 @@ def xor_similarity(voxel1, voxel2):
     """
     xor_count = np.logical_xor(voxel1, voxel2).sum()
     total_voxels = voxel1.size
-    return 1 - xor_count / total_voxels
-
-
-#Doesnt work on pretty blobs due to size. cant allocate 160gb of memory.
-def hausdorff_distance(voxel1, voxel2):
-    """
-    Calculate the Hausdorff distance between two 3D voxel grids.
-
-    The Hausdorff distance is the maximum distance of a set to the nearest point in the other set.
-    It measures how far the two voxel grids are from each other.
-
-    Parameters:
-    voxel1 (numpy.ndarray): A 3D numpy array representing the first voxel grid.
-    voxel2 (numpy.ndarray): A 3D numpy array representing the second voxel grid.
-
-    Returns:
-    float: The Hausdorff distance between the two voxel grids.
-    """
-    # Get coordinates of occupied voxels in both grids
-    coords1 = np.array(np.nonzero(voxel1)).T
-    coords2 = np.array(np.nonzero(voxel2)).T
-
-    # Compute distances from each point in voxel1 to the closest point in voxel2
-    dists_1_to_2 = cdist(coords1, coords2, 'euclidean').min(axis=1)
-    dists_2_to_1 = cdist(coords2, coords1, 'euclidean').min(axis=1)
-
-    # Hausdorff distance is the max of these minimum distances
-    hausdorff_dist = max(dists_1_to_2.max(), dists_2_to_1.max())
-    return hausdorff_dist
-
-
-def Hausdorff_dist(vol_a,vol_b):
-    dist_lst = []
-    for idx in range(len(vol_a)):
-        dist_min = 1000.0        
-        for idx2 in range(len(vol_b)):
-            dist= np.linalg.norm(vol_a[idx]-vol_b[idx2]) #euclidean distance
-            if dist_min > dist:
-                dist_min = dist
-        dist_lst.append(dist_min)
-    return np.max(dist_lst)
-
-
-def Hausdorff_normalized(voxel1, voxel2): 
-    D = np.sqrt(voxel1.shape[0]**2 + voxel1.shape[1]**2 + voxel1.shape[2]**2)
-    distance = Hausdorff_dist(voxel1, voxel2)
-    return distance / D
-
-
-
-
-#may work or may not
-def hausdorff_distance_voxel(voxel1, voxel2):
-    """
-    Calculate the Hausdorff distance between two 3D voxel grids using scipy's directed Hausdorff.
-
-    Parameters:
-    voxel1 (numpy.ndarray): A 3D numpy array representing the first voxel grid.
-    voxel2 (numpy.ndarray): A 3D numpy array representing the second voxel grid.
-
-    Returns:
-    float: The Hausdorff distance between the two voxel grids.
-    """
-    # Get coordinates of occupied voxels for non-binary values
-    coords1 = np.argwhere(voxel1 > 0)
-    coords2 = np.argwhere(voxel2 > 0)
-    
-    # Calculate directed Hausdorff distance from coords1 to coords2 and vice versa
-    d1 = directed_hausdorff(coords1, coords2)[0]
-    d2 = directed_hausdorff(coords2, coords1)[0]
-    
-    # Hausdorff distance is the maximum of the two directed distances
-    hausdorff_dist = max(d1, d2)
-    return hausdorff_dist
-
-
-
+    return  xor_count / total_voxels
 
 
 def total_variation_distance(voxel1, voxel2):
@@ -124,7 +47,7 @@ def total_variation_distance(voxel1, voxel2):
     # Compute absolute difference and normalize
     abs_difference = np.abs(voxel1.astype(float) - voxel2.astype(float))
     tvd = np.sum(abs_difference) / voxel1.size
-    return tvd
+    return 1 - tvd
 #zeby nie pracowac na 0.000x mozna dzielic przez ilosc voxeli niezerowych instead. 
 
 
@@ -145,7 +68,7 @@ def wasserstein_dst_voxel(voxel1, voxel2):
     
     # Compute Wasserstein distance
     wasserstein_dist = wasserstein_distance(voxel1_flat, voxel2_flat)
-    return wasserstein_dist
+    return 1 - wasserstein_dist
 
 
 def wasser(voxel1, voxel2):
@@ -171,45 +94,13 @@ def gradient_magnitude_similarity_deviation(voxel1, voxel2):
     gradient_magnitude2 = np.sqrt(sum(sobel(voxel2, axis=i)**2 for i in range(3)))
     
     # Compute the absolute difference of the gradient magnitudes
-    gmsd = 1- np.mean(np.abs((gradient_magnitude1 - gradient_magnitude2) / (gradient_magnitude1 + gradient_magnitude2 + 1e-6)))
-    return gmsd
+    gmsd = np.mean(np.abs((gradient_magnitude1 - gradient_magnitude2) / (gradient_magnitude1 + gradient_magnitude2 + 1e-6)))
+    return 1 - gmsd
 
 # https://github.com/jamaliki/qscore/blob/main/qscore/q_score.py
 #scipy hausdorff doesnt work, its for 2D. found something on stack overflow with bbox and it also didnt work due to dimensions(?)
 
 
-def qscore_similarity(voxel_grid1, voxel_grid2, threshold=0.1):
-    """
-    Compute the Q-score similarity measure between two voxel grids.
-    
-    Parameters:
-    - voxel_grid1, voxel_grid2: 3D numpy arrays representing the voxel grids.
-    - threshold: Minimum voxel intensity considered in the comparison (to ignore noise or low-density regions).
-    
-    Returns:
-    - Q-score similarity between the two voxel grids.
-    """
-    # Ensure both grids are the same shape
-    if voxel_grid1.shape != voxel_grid2.shape:
-        raise ValueError("Voxel grids must have the same shape for comparison.")
-    
-    # Flatten the voxel grids for element-wise operations
-    flat_grid1 = voxel_grid1.flatten()
-    flat_grid2 = voxel_grid2.flatten()
-    
-    # Filter out low-intensity voxels based on the threshold
-    mask = (flat_grid1 > threshold) & (flat_grid2 > threshold)
-    grid1_filtered = flat_grid1[mask]
-    grid2_filtered = flat_grid2[mask]
-    
-    # Calculate Q-score as the Pearson correlation coefficient
-    if len(grid1_filtered) > 0:
-        q_score = np.corrcoef(grid1_filtered, grid2_filtered)[0, 1]
-    else:
-        # If no high-density overlap, Q-score is zero
-        q_score = 0.0
-    
-    return 1 - q_score
 
 
 
@@ -218,11 +109,13 @@ def compute_q_score(voxel1: np.array, voxel2: np.array) -> float:
     voxel1 = voxel1.copy()
     voxel2 = voxel2.copy()
 
-    v1_mean = np.mean(voxel1)
-    v2_mean = np.mean(voxel2)
+    mask = (voxel1 != 0) | (voxel2 != 0)
+    
+    v1_mean = np.mean(voxel1[mask])
+    v2_mean = np.mean(voxel2[mask])
 
-    u_normalized = voxel1 - v1_mean
-    v_normalized = voxel2 - v2_mean
+    u_normalized = voxel1[mask] - v1_mean
+    v_normalized = voxel2[mask] - v2_mean
 
     numerator = np.sum(u_normalized * v_normalized)
     denominator = np.linalg.norm(u_normalized) * np.linalg.norm(v_normalized)
@@ -230,5 +123,5 @@ def compute_q_score(voxel1: np.array, voxel2: np.array) -> float:
     if denominator == 0:
         return 0
 
-    q_score_value = numerator / denominator
-    return abs(1 - q_score_value)
+    q_score_value = abs(numerator / denominator)
+    return  q_score_value
