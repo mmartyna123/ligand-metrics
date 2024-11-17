@@ -24,6 +24,25 @@ set_axes_unit(axes, np.mean(scale))
 plt.show()
 
 # %%
+fig, axs = plt.subplots(1, 2, sharey=True, sharex=True, tight_layout=True)
+
+axs[0].hist(cutout.reshape(-1), bins=50)
+axs[1].hist(cutout[perfect.nonzero()].reshape(-1), bins=50)
+
+plt.show()
+
+# %%
+from scipy import stats
+
+fig, axs = plt.subplots(1, 2, sharey=True, sharex=True, tight_layout=True)
+
+x = np.arange(cutout.min(), cutout.max(), 0.001)
+axs[0].plot(x, stats.gaussian_kde(cutout.reshape(-1))(x))
+axs[1].plot(x, stats.gaussian_kde(cutout[perfect.nonzero()].reshape(-1))(x))
+
+plt.show()
+
+# %%
 lookup = get_lookup(ligands, origin, scale)
 neighbor_atoms = lookup(offset, size, "6HCY_C_502_HEM")
 len(neighbor_atoms)
