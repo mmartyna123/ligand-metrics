@@ -1,1 +1,7 @@
-*.npy
+voxel_base.npy
+voxel_different.npy
+voxel_different_hole.npy
+voxel_loss_big.npy
+voxel_loss_small.npy
+voxel_negative_blob.npy
+voxel_with_blob.npy
