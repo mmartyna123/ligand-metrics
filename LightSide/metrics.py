@@ -123,5 +123,5 @@ def compute_q_score(voxel1: np.array, voxel2: np.array) -> float:
     if denominator == 0:
         return 0
 
-    q_score_value = abs(numerator / denominator)
-    return  q_score_value
+    q_score_value = numerator / denominator
+    return q_score_value
