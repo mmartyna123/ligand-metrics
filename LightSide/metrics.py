@@ -71,8 +71,8 @@ def wasserstein_dst_voxel(voxel1, voxel2):
     return 1 - wasserstein_dist
 
 
-def wasser(voxel1, voxel2):
-    return wasserstein_distance_nd(voxel1, voxel2)
+# def wasser(voxel1, voxel2):
+#     return wasserstein_distance_nd(voxel1, voxel2)
 
 def gradient_magnitude_similarity_deviation(voxel1, voxel2):
     """
