@@ -109,13 +109,18 @@ def compute_q_score(voxel1: np.array, voxel2: np.array) -> float:
     voxel1 = voxel1.copy()
     voxel2 = voxel2.copy()
 
-    mask = (voxel1 != 0) | (voxel2 != 0)
+    #mask = (voxel1 != 0) | (voxel2 != 0)
     
-    v1_mean = np.mean(voxel1[mask])
-    v2_mean = np.mean(voxel2[mask])
+    #v1_mean = np.mean(voxel1[mask])
+    #v2_mean = np.mean(voxel2[mask])
 
-    u_normalized = voxel1[mask] - v1_mean
-    v_normalized = voxel2[mask] - v2_mean
+    #u_normalized = (voxel1[mask] - np.min(voxel1[mask])) / (np.max(voxel1[mask]) - np.min(voxel1[mask]))
+    #v_normalized = (voxel2[mask] - np.min(voxel2[mask])) / (np.max(voxel2[mask]) - np.min(voxel2[mask]))
+    
+    
+    u_normalized = (voxel1 - np.min(voxel1)) / (np.max(voxel1) - np.min(voxel1))
+    v_normalized = (voxel2 - np.min(voxel2)) / (np.max(voxel2) - np.min(voxel2))
+
 
     numerator = np.sum(u_normalized * v_normalized)
     denominator = np.linalg.norm(u_normalized) * np.linalg.norm(v_normalized)
