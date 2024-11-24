@@ -136,6 +136,12 @@ def get_mask(atoms, shape):
 
     return mask[-bb_min[0]:shape[0]-bb_min[0], -bb_min[1]:shape[1]-bb_min[1], -bb_min[2]:shape[2]-bb_min[2]]
 
+def binarize(map, threshold):
+    binary = map.copy()
+    binary[map >= threshold] = 1
+    binary[map <  threshold] = 0
+    return binary
+
 # ==== Handling ligands ==== #
 @lru_cache
 def get_atomic_radius(atom_name):
