@@ -65,8 +65,8 @@ for entry in data:
             dependencies[pdb_url] = emd_url
 
     def schedule_cutting(pdb_path, emd_path, pdb, emd, resolution, threshold):
-        jobs.append(pool.spawn(lambda args: subprocess.run(["python", "cutter.py", "-o", *args]), [f"data/A{resolution}_NAME.npz", pdb_path, emd_path]))
-        log(f"Cutting EMD-{emd} (structure: {pdb.upper()}, resolution: {resolution})")
+        jobs.append(pool.spawn(lambda args: subprocess.run(["python", "cutter.py", *args]), ["-o", f"data/NAME.npz", "-t", repr(threshold), "-i", pdb_path, emd_path]))
+        log(f"Cutting EMD-{emd} (structure: {pdb.upper()}, resolution: {resolution}, threshold: {threshold})")
 
     def on_downloaded(job):
         response = job.value
