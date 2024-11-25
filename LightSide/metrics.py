@@ -148,6 +148,9 @@ def wasserstein_distance_3d(grid1, grid2):
     # Get the values at these indices
     values1 = grid1[grid1 > 0]
     values2 = grid2[grid2 > 0]
+    
+    if np.sum(values1) == 0 or np.sum(values2) == 0:
+        return 0
 
     # Normalize the values to sum to 1
     a = values1 / np.sum(values1)
