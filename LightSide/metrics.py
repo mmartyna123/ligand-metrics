@@ -9,6 +9,7 @@ from scipy.ndimage import sobel #Gradient Magnitude Similarity Deviation
 from scipy.stats import wasserstein_distance_nd
 from scipy.sparse import lil_matrix
 import ot
+from scipy.sparse import csr_matrix
 
 
 #opcen3d and geomloss
@@ -161,6 +162,63 @@ def wasserstein_distance_3d(grid1, grid2):
     wasserstein_distance = np.sum(transport_plan * cost_matrix)
     
     return  wasserstein_distance
+
+
+
+def wasserstein_distance_3d_optimized(grid1, grid2, reg=0.1, threshold=0.01, downsample_factor=2):
+    """
+    Compute the Wasserstein distance between two 3D voxel grids using an optimized approach.
+    
+    Parameters:
+        grid1 (np.ndarray): First 3D voxel grid.
+        grid2 (np.ndarray): Second 3D voxel grid.
+        reg (float): Regularization parameter for the Sinkhorn algorithm.
+        threshold (float): Threshold to ignore low-intensity voxels.
+        downsample_factor (int): Factor by which to downsample the grids for efficiency.
+    
+    Returns:
+        float: Approximated Wasserstein distance between the two voxel grids.
+    """
+    
+    # Downsample the grids to reduce computational complexity
+    # This reduces the grid resolution by taking every nth voxel (based on downsample_factor)
+    grid1_down = grid1[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    grid2_down = grid2[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    
+    # Extract the indices of non-zero voxels (values > threshold) in the downsampled grids
+    # These indices represent the coordinates of voxels with significant values
+    indices1 = np.argwhere(grid1_down > threshold)
+    indices2 = np.argwhere(grid2_down > threshold)
+    
+    # Extract the values of the voxels at the above indices
+    # These represent the weights or mass of the voxels
+    values1 = grid1_down[grid1_down > threshold]
+    values2 = grid2_down[grid2_down > threshold]
+    
+    # Normalize the values to ensure they sum to 1
+    # This is required for computing a valid probability distribution
+    a = values1 / np.sum(values1)
+    b = values2 / np.sum(values2)
+
+    # Construct the cost matrix using pairwise Euclidean distances
+    # Each entry in the matrix represents the "cost" of transporting mass from one voxel to another
+    cost_matrix = cdist(indices1, indices2, metric='euclidean')
+    
+    # Convert the cost matrix to a sparse representation to save memory and improve efficiency
+    # Sparse matrices are useful when the cost matrix has many zeros or near-zero entries
+    sparse_cost_matrix = csr_matrix(cost_matrix)
+
+    # Solve the optimal transport problem using the Sinkhorn algorithm
+    # The algorithm finds the optimal transport plan that minimizes the total cost
+    # with an added entropic regularization term (controlled by reg)
+    transport_plan = ot.sinkhorn(a, b, sparse_cost_matrix.toarray(), reg=reg)
+    
+    # Compute the Wasserstein distance as the sum of the element-wise product
+    # of the transport plan and the cost matrix
+    wasserstein_distance = np.sum(transport_plan * sparse_cost_matrix.toarray())
+    
+    return 1- wasserstein_distance
+
 
 
 
