@@ -10,6 +10,16 @@ monkey.patch_all()
 import requests
 import subprocess
 
+"""
+Example yaml input
+==================
+data:
+  - emd: 0199
+    thr: 0.005
+    pdb: 6hcy
+    res: 3.1
+"""
+
 parser = argparse.ArgumentParser()
 parser.add_argument("yaml", help="path to data yaml file")
 parser.add_argument("-v", "--verbose", action="store_true", help="enable logging")
