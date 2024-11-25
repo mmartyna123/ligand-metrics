@@ -6,11 +6,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument("cif", help="path to cif file")
 parser.add_argument("mrc", help="path to mrc file")
 parser.add_argument("-l", "--ligand", help="specific ligand to process")
-parser.add_argument("-s", "--strip-prefix", action="store_true", help="strip 'ours_' prefix from output")
+parser.add_argument("-o", "--output", nargs="?", default="ours_NAME.npz", help="output pattern")
 parser.add_argument("-v", "--verbose", action="store_true", help="enable logging")
 args = parser.parse_args()
 
-prefix = "" if args.strip_prefix else "ours_"
 log = print if args.verbose else lambda x: x
 
 log("Loading ligands")
@@ -42,5 +41,5 @@ for name, ligand in to_process:
 
     cutout[distance_to_positive > distance_to_negative] = cutout.min()
 
-    np.savez(prefix + name + ".npz", cutout)
+    np.savez(args.output.replace("NAME", name), cutout)
 
