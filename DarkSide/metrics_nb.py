@@ -230,7 +230,7 @@ def create_ligand(shape, atoms, min=0, max=1):
 
     return blob
 
-gaussian = create_ligand(blob.shape, atoms, blob[blob > map.min()].min(), blob.max())
+gaussian = create_ligand(blob.shape, atoms, blob.min(), blob.max())
 plot_blob_comparison(gaussian, blob)
 plt.show()
 
@@ -270,7 +270,7 @@ compare_append, compare_table = compare_deferred([("TVD", total_variation_distan
                                                   ("Wasserstein", wasserstein_dst_voxel),
                                                   ("GMSD", gradient_magnitude_similarity_deviation),
                                                   ("Q-Score", compute_q_score)])
-compare_append("Gaussian (A)", [gaussian, blob])
+compare_append("Gaussian", [gaussian, blob])
 
 # %%
 gaussian_copy = gaussian.copy()
@@ -279,7 +279,7 @@ blob_copy = blob.copy()
 gaussian_copy[gaussian < threshold] = map.min()
 blob_copy[blob < threshold] = map.min()
 
-compare_append("Gaussian (A) Thold", [gaussian_copy, blob_copy])
+compare_append("Gaussian Thold", [gaussian_copy, blob_copy])
 
 # %%
 gaussian_copy = gaussian.copy()
@@ -288,30 +288,7 @@ blob_copy = blob.copy()
 gaussian_copy[blob < threshold] = map.min()
 blob_copy[blob < threshold] = map.min()
 
-compare_append("Gaussian (A) Thold Alt", [gaussian_copy, blob_copy])
-
-# %%
-gaussian_alt = create_ligand(blob.shape, atoms, blob.min(), blob.max())
-
-compare_append("Gaussian (B)", [gaussian_alt, blob])
-
-# %%
-gaussian_alt_copy = gaussian_alt.copy()
-blob_copy = blob.copy()
-
-gaussian_alt_copy[gaussian_alt < threshold] = map.min()
-blob_copy[blob < threshold] = map.min()
-
-compare_append("Gaussian (B) Thold", [gaussian_alt_copy, blob_copy])
-
-# %%
-gaussian_alt_copy = gaussian_alt.copy()
-blob_copy = blob.copy()
-
-gaussian_alt_copy[blob < threshold] = map.min()
-blob_copy[blob < threshold] = map.min()
-
-compare_append("Gaussian (B) Thold Alt", [gaussian_alt_copy, blob_copy])
+compare_append("Gaussian Thold Alt", [gaussian_copy, blob_copy])
 
 # %%
 compare_table()
