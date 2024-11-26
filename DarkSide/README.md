@@ -1,40 +1,48 @@
 # Blobifying ligands
 ## Prerequisites
-Install package
+Install package and OpenCL driver for your system
 ```sh
 pip install -e .
 ```
 
-Get [the CIF file](https://www.rcsb.org/structure/6HCY), [the cut blobs](https://zenodo.org/records/10908325) and extract `6HCY_C_502_HEM.npz`
+## Usage
+### Batch
+This tool is designed to mass process density maps.
+
+First, create `data.yaml` to store map and structure data.
+```yaml
+data:
+  - emd: 0199
+    thr: 0.005
+    pdb: 6hcy
+    res: 3.1
+```
+Then, run the `batch.py` script.
+```sh
+python batch.py --verbose --jobs 4 data.yaml
+```
+
+### Cutter
+This tool is designed to cut out the density around studied ligands in a structure.
+
+First, download the structure and the density map.
 ```sh
 wget https://files.rcsb.org/download/6HCY.cif
-wget https://zenodo.org/records/10908325/files/cryoem_blobs.zip
-unzip -p cryoem_blobs.zip cryoem_blobs/6HCY_C_502_HEM.npz > 6HCY_C_502_HEM.npz
+wget https://files.rcsb.org/pub/emdb/structures/EMD-0199/map/emd_0199.map.gz
+```
+Then, run the `cutter.py` script.
+```sh
+python cutter.py --verbose 6HCY.cif emd_0199.map.gz
 ```
 
-## Usage
-Import and use the provided functions
-```python
-from blobify import *
+### Blobify
+This tool is designed to plot the density of a studied ligand.
 
-ligands = load_ligands("6HCY.cif")
-ligand = ligands["6HCY_C_502_HEM"]
-cut_blob = load_blob("6HCY_C_502_HEM.npz")
-perfect_blob = blobify_like(ligand, cut_blob)
-plot_blob_comparison(perfect_blob, cut_blob)
-plt.show()
+First, download the structure.
+```sh
+wget https://files.rcsb.org/download/6HCY.cif
 ```
-
-## Run
-You can run it with python
+Then, run the `blobify.py` script.
 ```sh
 python blobify.py 6HCY_C_502_HEM
 ```
-to blobify the given ligand and display it
-
-Or you can pass it the `--compare` flag to side by side
-compare it with a cut ligand
-```sh
-python blobify.py --compare 6HCY_C_502_HEM
-```
-
