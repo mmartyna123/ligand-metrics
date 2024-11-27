@@ -138,7 +138,7 @@ def compute_q_score(voxel1: np.array, voxel2: np.array) -> float:
     return q_score_value
 
 
-#DUPA
+####
 
 def wasserstein_distance_3d(grid1, grid2):
     # Get the indices of non-zero values
@@ -221,26 +221,3 @@ def wasserstein_distance_3d_optimized(grid1, grid2, reg=0.1, threshold=0.01, dow
     wasserstein_distance = np.sum(transport_plan * sparse_cost_matrix.toarray())
     
     return 1- wasserstein_distance
-
-
-
-
-# def wasserstein_distance_3d_old(grid1, grid2):
-#     m, n, p = grid1.shape
-#     cost_matrix = lil_matrix((m * n * p, m * n * p))
-#     for i in range(m):
-#         for j in range(n):
-#             for k in range(p):
-#                 for ii in range(m):
-#                     for jj in range(n):
-#                         for kk in range(p):
-#                             if (i, j, k) != (ii, jj, kk):
-#                                 idx1 = i * n * p + j * p + k
-#                                 idx2 = ii * n * p + jj * p + kk
-#                                 cost_matrix[idx1, idx2] = np.sqrt((i - ii)**2 + (j - jj)**2 + (k - kk)**2)
-#     shape = grid1.shape
-#     a = grid1.flatten() / np.sum(grid1)
-#     b = grid2.flatten() / np.sum(grid2)
-#     transport_plan = ot.sinkhorn(a, b, cost_matrix.toarray(), reg=0.1)
-#     wasserstein_distance = np.sum(transport_plan * cost_matrix.toarray())
-#     return wasserstein_distance

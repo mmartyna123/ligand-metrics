@@ -1,5 +1,9 @@
 # Ignore all .npz files
 *.npy
+*.npz
+*.cif
+*.gz
+*.zip
 
 # Except for Mateusz's blobs
 !perfect_blob.npy
