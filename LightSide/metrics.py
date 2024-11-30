@@ -142,15 +142,15 @@ def compute_q_score(voxel1: np.array, voxel2: np.array) -> float:
 
 def wasserstein_distance_3d(grid1, grid2):
     # Get the indices of non-zero values
-    indices1 = np.argwhere(grid1 > 0)
-    indices2 = np.argwhere(grid2 > 0)
+    indices1 = np.argwhere(grid1 != 0)
+    indices2 = np.argwhere(grid2 != 0)
 
     # Get the values at these indices
-    values1 = grid1[grid1 > 0]
-    values2 = grid2[grid2 > 0]
+    values1 = grid1[grid1 != 0]
+    values2 = grid2[grid2 != 0]
     
-    if np.sum(values1) == 0 or np.sum(values2) == 0:
-        return 0
+    if values1.size == 0 or values2.size == 0:
+        return 1.0 if values1.size == values2.size else 0.0
 
     # Normalize the values to sum to 1
     a = values1 / np.sum(values1)
@@ -164,13 +164,18 @@ def wasserstein_distance_3d(grid1, grid2):
 
     wasserstein_distance = np.sum(transport_plan * cost_matrix)
     
-    return  wasserstein_distance
+    max_distance = np.sqrt(np.sum(np.maximum(grid1.shape, grid2.shape) ** 2))
+    
+    similarity = 1 - (wasserstein_distance / max_distance)
+
+    
+    return  similarity
 
 
 
 def wasserstein_distance_3d_optimized(grid1, grid2, reg=0.1, threshold=0.01, downsample_factor=2):
     """
-    Compute the Wasserstein distance between two 3D voxel grids using an optimized approach.
+    Compute the Wasserstein similarity (0 to 1) between two 3D voxel grids using an optimized approach.
     
     Parameters:
         grid1 (np.ndarray): First 3D voxel grid.
@@ -180,44 +185,37 @@ def wasserstein_distance_3d_optimized(grid1, grid2, reg=0.1, threshold=0.01, dow
         downsample_factor (int): Factor by which to downsample the grids for efficiency.
     
     Returns:
-        float: Approximated Wasserstein distance between the two voxel grids.
+        float: Normalized Wasserstein similarity (1 = perfect match, 0 = no match).
     """
-    
-    # Downsample the grids to reduce computational complexity
-    # This reduces the grid resolution by taking every nth voxel (based on downsample_factor)
+    # Downsample the grids
     grid1_down = grid1[::downsample_factor, ::downsample_factor, ::downsample_factor]
     grid2_down = grid2[::downsample_factor, ::downsample_factor, ::downsample_factor]
-    
-    # Extract the indices of non-zero voxels (values > threshold) in the downsampled grids
-    # These indices represent the coordinates of voxels with significant values
+
+    # Extract significant voxels (values > threshold)
     indices1 = np.argwhere(grid1_down > threshold)
     indices2 = np.argwhere(grid2_down > threshold)
-    
-    # Extract the values of the voxels at the above indices
-    # These represent the weights or mass of the voxels
     values1 = grid1_down[grid1_down > threshold]
     values2 = grid2_down[grid2_down > threshold]
-    
-    # Normalize the values to ensure they sum to 1
-    # This is required for computing a valid probability distribution
-    a = values1 / np.sum(values1)
-    b = values2 / np.sum(values2)
 
-    # Construct the cost matrix using pairwise Euclidean distances
-    # Each entry in the matrix represents the "cost" of transporting mass from one voxel to another
+    # Handle edge cases where one or both grids are empty
+    if values1.size == 0 or values2.size == 0:
+        return 1.0 if values1.size == values2.size else 0.0
+
+    # Normalize the voxel values to sum to 1
+    a = values1 / values1.sum()
+    b = values2 / values2.sum()
+
+    # Compute the cost matrix (pairwise Euclidean distances)
     cost_matrix = cdist(indices1, indices2, metric='euclidean')
-    
-    # Convert the cost matrix to a sparse representation to save memory and improve efficiency
-    # Sparse matrices are useful when the cost matrix has many zeros or near-zero entries
-    sparse_cost_matrix = csr_matrix(cost_matrix)
 
-    # Solve the optimal transport problem using the Sinkhorn algorithm
-    # The algorithm finds the optimal transport plan that minimizes the total cost
-    # with an added entropic regularization term (controlled by reg)
-    transport_plan = ot.sinkhorn(a, b, sparse_cost_matrix.toarray(), reg=reg)
-    
-    # Compute the Wasserstein distance as the sum of the element-wise product
-    # of the transport plan and the cost matrix
-    wasserstein_distance = np.sum(transport_plan * sparse_cost_matrix.toarray())
-    
-    return 1- wasserstein_distance
+    # Solve the optimal transport problem using Sinkhorn algorithm
+    transport_plan = ot.sinkhorn(a, b, cost_matrix, reg=reg)
+    wasserstein_distance = np.sum(transport_plan * cost_matrix)
+
+    # Compute the maximum possible distance for normalization
+    max_distance = np.sqrt(np.sum(np.maximum(grid1.shape, grid2.shape) ** 2))
+
+    # Normalize Wasserstein distance to obtain similarity
+    similarity = 1 - (wasserstein_distance / max_distance)
+
+    return similarity
