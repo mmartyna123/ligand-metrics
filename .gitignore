@@ -4,9 +4,13 @@
 *.cif
 *.gz
 *.zip
+*.map
+
+
 
 # Except for Mateusz's blobs
 !perfect_blob.npy
 !cut_blob.npy
 !6HCY_B_502_HEM_perfect.npy
 !6HCY_B_502_HEM_cut.npy
+
