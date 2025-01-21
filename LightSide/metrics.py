@@ -135,6 +135,7 @@ def compute_q_score(voxel1: np.array, voxel2: np.array) -> float:
         return 0
 
     q_score_value = numerator / denominator
+    # print(numerator, denominator)
     return q_score_value
 
 
@@ -217,5 +218,5 @@ def wasserstein_distance_3d_optimized(grid1, grid2, reg=0.1, threshold=0.01, dow
 
     # Normalize Wasserstein distance to obtain similarity
     similarity = 1 - (wasserstein_distance / max_distance)
-
+    # print(wasserstein_distance, max_distance)
     return similarity
