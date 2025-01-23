@@ -237,39 +237,39 @@ def wasserstein_distance_3d_optimized_normalized(grid1, grid2, reg=0.1, threshol
     Returns:
         float: Normalized Wasserstein similarity (1 = perfect match, 0 = no match).
     """
-    # Downsample the grids
+    #downsample the grids
     grid1_down = grid1[::downsample_factor, ::downsample_factor, ::downsample_factor]
     grid2_down = grid2[::downsample_factor, ::downsample_factor, ::downsample_factor]
 
-    # Extract significant voxels (values > threshold)
+    #extracting only the  significant voxels where values > threshold
     indices1 = np.argwhere(grid1_down > threshold)
     indices2 = np.argwhere(grid2_down > threshold)
     values1 = grid1_down[grid1_down > threshold]
     values2 = grid2_down[grid2_down > threshold]
 
-    # Handle edge cases where one or both grids are empty
+    #handling edge cases where one or both grids are empty
     if values1.size == 0 or values2.size == 0:
         return 1.0 if values1.size == values2.size else 0.0
 
-    # Normalize the voxel values to sum to 1
+    #normalizing the voxel values to sum to 1
     a = values1 / values1.sum()
     b = values2 / values2.sum()
 
-    # Compute the cost matrix (pairwise Euclidean distances)
+    # computing the cost matrix (pairwise Euclidean distances)
     cost_matrix = cdist(indices1, indices2, metric='euclidean')
 
-    # Solve the optimal transport problem using Sinkhorn algorithm
+    #transport problem using Sinkhorn algorithm
     transport_plan = ot.sinkhorn(a, b, cost_matrix, reg=reg)
     wasserstein_distance = np.sum(transport_plan * cost_matrix)
 
-# Compute the maximum distance between the non-zero regions for normalization
-    combined_indices = np.vstack([indices1, indices2])
+    # computing max distance between the non-zero regions for normalization (between the two grids)
+    combined_indices = np.vstack([indices1, indices2]) # Combine indices from both grids
     max_distance = np.sqrt(np.sum((combined_indices.max(axis=0) - combined_indices.min(axis=0)) ** 2))
 
-    # Fallback for very sparse grids (to avoid zero max_distance)
+    #fallback for very sparse grids (to avoid zero max_distance)
     max_distance = max(max_distance, 1e-8)
 
-    # Normalize Wasserstein distance to obtain similarity
+    # NORMALIZATION -- IS THERE BETTER APPROACH ??
     similarity = 1 - (wasserstein_distance / max_distance)
     # print(wasserstein_distance, max_distance)
     return similarity
