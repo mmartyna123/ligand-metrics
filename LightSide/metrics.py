@@ -220,3 +220,86 @@ def wasserstein_distance_3d_optimized(grid1, grid2, reg=0.1, threshold=0.01, dow
     similarity = 1 - (wasserstein_distance / max_distance)
     # print(wasserstein_distance, max_distance)
     return similarity
+
+
+
+def wasserstein_distance_3d_optimized_normalized(grid1, grid2, reg=0.1, threshold=0.01, downsample_factor=2):
+    """
+    Compute the Wasserstein similarity (0 to 1) between two 3D voxel grids using an optimized approach.
+    
+    Parameters:
+        grid1 (np.ndarray): First 3D voxel grid.
+        grid2 (np.ndarray): Second 3D voxel grid.
+        reg (float): Regularization parameter for the Sinkhorn algorithm.
+        threshold (float): Threshold to ignore low-intensity voxels.
+        downsample_factor (int): Factor by which to downsample the grids for efficiency.
+    
+    Returns:
+        float: Normalized Wasserstein similarity (1 = perfect match, 0 = no match).
+    """
+    # Downsample the grids
+    grid1_down = grid1[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    grid2_down = grid2[::downsample_factor, ::downsample_factor, ::downsample_factor]
+
+    # Extract significant voxels (values > threshold)
+    indices1 = np.argwhere(grid1_down > threshold)
+    indices2 = np.argwhere(grid2_down > threshold)
+    values1 = grid1_down[grid1_down > threshold]
+    values2 = grid2_down[grid2_down > threshold]
+
+    # Handle edge cases where one or both grids are empty
+    if values1.size == 0 or values2.size == 0:
+        return 1.0 if values1.size == values2.size else 0.0
+
+    # Normalize the voxel values to sum to 1
+    a = values1 / values1.sum()
+    b = values2 / values2.sum()
+
+    # Compute the cost matrix (pairwise Euclidean distances)
+    cost_matrix = cdist(indices1, indices2, metric='euclidean')
+
+    # Solve the optimal transport problem using Sinkhorn algorithm
+    transport_plan = ot.sinkhorn(a, b, cost_matrix, reg=reg)
+    wasserstein_distance = np.sum(transport_plan * cost_matrix)
+
+# Compute the maximum distance between the non-zero regions for normalization
+    combined_indices = np.vstack([indices1, indices2])
+    max_distance = np.sqrt(np.sum((combined_indices.max(axis=0) - combined_indices.min(axis=0)) ** 2))
+
+    # Fallback for very sparse grids (to avoid zero max_distance)
+    max_distance = max(max_distance, 1e-8)
+
+    # Normalize Wasserstein distance to obtain similarity
+    similarity = 1 - (wasserstein_distance / max_distance)
+    # print(wasserstein_distance, max_distance)
+    return similarity
+
+
+
+def wasserstein_distance_3d_average_distance(grid1, grid2, reg=0.1, threshold=0.01, downsample_factor=2):
+    grid1_down = grid1[::downsample_factor, ::downsample_factor, ::downsample_factor]
+    grid2_down = grid2[::downsample_factor, ::downsample_factor, ::downsample_factor]
+
+    indices1 = np.argwhere(grid1_down > threshold)
+    indices2 = np.argwhere(grid2_down > threshold)
+    values1 = grid1_down[grid1_down > threshold]
+    values2 = grid2_down[grid2_down > threshold]
+
+    if values1.size == 0 or values2.size == 0:
+        return 1.0 if values1.size == values2.size else 0.0
+
+    a = values1 / values1.sum()
+    b = values2 / values2.sum()
+
+    cost_matrix = cdist(indices1, indices2, metric='euclidean')
+    transport_plan = ot.sinkhorn(a, b, cost_matrix, reg=reg)
+    wasserstein_distance = np.sum(transport_plan * cost_matrix)
+
+    # Normalize by average pairwise distances of voxels
+    avg_distance1 = np.mean(cdist(indices1, indices1, metric='euclidean'))
+    avg_distance2 = np.mean(cdist(indices2, indices2, metric='euclidean'))
+    avg_distance = max(avg_distance1, avg_distance2)
+
+    max_distance = max(avg_distance, 1e-8)  # Avoid division by zero
+    similarity = 1 - (wasserstein_distance / max_distance)
+    return similarity
