@@ -11,6 +11,7 @@ from scipy.sparse import lil_matrix
 import ot
 from scipy.sparse import csr_matrix
 
+
 # Function to calculate total variation distance
 def total_variation_distance(voxel1, voxel2):
     """
@@ -80,7 +81,9 @@ def wasserstein_distance_3d_optimized(grid1, grid2, reg=0.1, threshold=0.01, dow
 
     # Normalize Wasserstein distance to obtain similarity
     similarity = 1 - (wasserstein_distance / max_distance)
-    # print(wasserstein_distance, max_distance)
+
+    similarity = round(similarity, 5)
+
     return similarity
 
 
@@ -135,7 +138,9 @@ def wasserstein_distance_3d_optimized_normalized(grid1, grid2, reg=0.1, threshol
 
     # NORMALIZATION -- IS THERE BETTER APPROACH ??
     similarity = 1 - (wasserstein_distance / max_distance)
-    # print(wasserstein_distance, max_distance)
+    
+    similarity = round(similarity, 5)
+    
     return similarity
 
 # Function to calculate the Q-score
